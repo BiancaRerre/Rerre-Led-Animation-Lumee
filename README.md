@@ -10,7 +10,7 @@ para Esp8266
 - /play
 - /restart
 ------------
-### Binario compilado ESP8266
+### [Binario compilado ESP8266](https://github.com/BiancaRerre/Rerre-Led-Animation-Lumee/tree/main/bin)
 #### Pinos para led comum:
 - R: 12
 - G: 13
