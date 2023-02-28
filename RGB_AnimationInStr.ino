@@ -14,7 +14,14 @@
 ESP8266WebServer server(80); // cria uma instância do servidor web
 
 
-#define PIN 48
+#ifdef ESP32
+    #define PIN 48
+#endif
+
+#ifdef ESP8266
+    #define PIN 4
+#endif
+
 #define LED_COUNT 1
 Adafruit_NeoPixel strip =
     Adafruit_NeoPixel(LED_COUNT, PIN, NEO_GRBW + NEO_KHZ800);
@@ -31,7 +38,7 @@ int R[] = {255, 0, 0, 23, 56, 217}; // reD
 int G[] = {255, 0, 255, 123, 156, 187}; // 
 int B[] = {25, 158, 100, 0, 156, 87}; // 
 
-#define PIN 4
+
 #define NUMPIXELS 4
 Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
