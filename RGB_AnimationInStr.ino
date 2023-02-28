@@ -1,6 +1,10 @@
 #include <Adafruit_NeoPixel.h>
 #include <Arduino.h>
 
+#ifdef ESP32
+   //libs esp32 here
+#endif
+
 #ifdef ESP8266
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
