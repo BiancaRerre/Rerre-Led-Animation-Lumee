@@ -22,8 +22,8 @@ para Esp8266
 
 ------------
 ##Links:
-[Jvinicius06/RGB_AnimationInStr](https://github.com/Jvinicius06/RGB_AnimationInStr) interpretador da animação
-[Juliallabs/Lumee](https://github.com/Juliallabs/Lumee) cor estatica
-[ChatGPT](https://chat.openai.com/chat)
+- [Jvinicius06/RGB_AnimationInStr](https://github.com/Jvinicius06/RGB_AnimationInStr) interpretador da animação
+- [Juliallabs/Lumee](https://github.com/Juliallabs/Lumee) cor estatica
+- [ChatGPT](https://chat.openai.com/chat)
 
 ------------
