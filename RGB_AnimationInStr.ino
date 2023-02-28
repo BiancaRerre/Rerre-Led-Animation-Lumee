@@ -1,10 +1,12 @@
 #include <Adafruit_NeoPixel.h>
 #include <Arduino.h>
 
+#ifdef ESP8266
 #include <ESP8266WiFi.h>
-#include <WiFiManager.h>
 #include <ESP8266WebServer.h>
+#endif
 
+#include <WiFiManager.h>
 #include "animatiocnDecoder.hpp" // arquivo com a função setAnimation()
 #include"./html.h"
 //#include "./infrastructure.h"
