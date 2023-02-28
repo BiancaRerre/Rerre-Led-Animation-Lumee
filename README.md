@@ -16,8 +16,9 @@ para Esp8266
 - G: 13
 - B: 14
 
-#### Pino para led endereçável no esp8266:
-- gpio 4
+#### Pino para led endereçável:
+- gpio 4 (esp8266)
+- gpio 48 (esp32)
 
 
 ------------
