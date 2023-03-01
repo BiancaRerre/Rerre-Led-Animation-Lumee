@@ -1,9 +1,5 @@
 #include <Arduino.h>
 
-//**************************************************
-//                  List Animations
-//**************************************************
-
 typedef struct animation {
     uint8_t R;      // cor Vermelhar
     uint8_t G;      // cor Verde
@@ -18,13 +14,13 @@ typedef struct list {
     list* next;
 } listAnimation_t;
 
-listAnimation_t* startAnimationList = NULL;
+listAnimation_t* startAnimation = NULL;
 listAnimation_t* actAnimation = NULL;
 animation_t status;
 animation_t act;
 
 listAnimation_t* getLastAniation(bool penult) {
-    listAnimation_t* aux = startAnimationList;
+    listAnimation_t* aux = startAnimation;
     if (aux == NULL) return NULL;
     while (aux->next != NULL) {
         aux = aux->next;
@@ -35,11 +31,11 @@ listAnimation_t* getLastAniation(bool penult) {
 void addAniation(animation_t index) {
     listAnimation_t* newAnimation = new listAnimation_t();
     memcpy(&newAnimation->value, &index, sizeof(animation_t));
-    if (startAnimationList == NULL) {
-        startAnimationList = newAnimation;
+    if (startAnimation == NULL) {
+        startAnimation = newAnimation;
         return;
     }
-    listAnimation_t* aux = startAnimationList;
+    listAnimation_t* aux = startAnimation;
     while (aux->next != NULL) {
         aux = aux->next;
     }
@@ -47,29 +43,14 @@ void addAniation(animation_t index) {
 }
 
 void clearAniation() {
-    listAnimation_t* aux = startAnimationList;
+    listAnimation_t* aux = startAnimation;
     if (aux == NULL) return;
-    while (startAnimationList != NULL) {
-        aux = startAnimationList;
-        startAnimationList = startAnimationList->next;
+    while (startAnimation != NULL) {
+        aux = startAnimation;
+        startAnimation = startAnimation->next;
         delete aux;
     }
 }
-
-//**************************************************
-//               Variabes Globlas
-//**************************************************
-
-enum animationRunTypes {
-    STOP,
-    ANIMATION,
-    STATIC,
-};
-
-uint8_t animationRun = STOP;
-uint8_t staticR = 0;
-uint8_t staticG = 0;
-uint8_t staticB = 0;
 
 //**************************************************
 //                 Log Animation
@@ -105,12 +86,9 @@ char auxBuffer[MAXAUXBUFFERLEN];
 
 enum statusProcessing { NORMAL, NEXTANIMATION, ERRROR };
 
-uint16_t getValueOfAuxBuffer(bool isActivectRandon = false) {
+uint16_t getValueOfAuxBuffer() {
     uint16_t aux = 0;
     aux = atol(auxBuffer);
-    if (isActivectRandon && aux > 0xff) {
-        aux = random(255);
-    }
     return aux;
 }
 
@@ -132,13 +110,13 @@ uint8_t processingChar(char index, animation_t* ani) {
         // coleta os valores numeros do auxilia buffer
         if (state > GETVALUE) {
             if (state == SETRED) {
-                ani->R = getValueOfAuxBuffer(true);
+                ani->R = getValueOfAuxBuffer();
                 printSetValue("R", ani->R);
             } else if (state == SETBLUE) {
-                ani->B = getValueOfAuxBuffer(true);
+                ani->B = getValueOfAuxBuffer();
                 printSetValue("B", ani->B);
             } else if (state == SETGREEN) {
-                ani->G = getValueOfAuxBuffer(true);
+                ani->G = getValueOfAuxBuffer();
                 printSetValue("G", ani->G);
             } else if (state == SETTIMEFADE) {
                 ani->fade = getValueOfAuxBuffer();
@@ -181,7 +159,6 @@ uint8_t processingChar(char index, animation_t* ani) {
  * @param len tamanho em caracteres da animcacao
  */
 void setAnimation(const char* animation, uint16_t len) {
-    animationRun = STOP;
     clearAniation();
     uint16_t i = 0;
     animation_t ani;
@@ -204,11 +181,10 @@ void setAnimation(const char* animation, uint16_t len) {
             // esse satatus indica que o evevnto de animacao esta completo
         } else {
             // idicador de erro no texto
-            // return;
+            // return false;
         }
         i++;
     }
-    animationRun = ANIMATION;
 }
 
 //*********************************
@@ -219,19 +195,13 @@ typedef void handleLeds_t(uint8_t, uint8_t, uint8_t);
 
 handleLeds_t* hanldesLeds = NULL;
 
-void setHandleLed(handleLeds_t* index) { hanldesLeds = index; }
+void setHanldesLeds(handleLeds_t* index) { hanldesLeds = index; }
 
 void loopAnimation() {
     if (hanldesLeds == NULL) return;
-    if (animationRun != ANIMATION) {
-        if (animationRun == STATIC) {
-            hanldesLeds(staticR, staticG, staticB);
-        }
-        return;
-    }
-    if (startAnimationList == NULL) return;
+    if (startAnimation == NULL) return;
     if (actAnimation == NULL) {
-        actAnimation = startAnimationList;
+        actAnimation = startAnimation;
         act = actAnimation->value;
     }
     // seta RGB caso nao setado
@@ -250,24 +220,15 @@ void loopAnimation() {
     uint32_t actTime = millis();
     // Serial.println(act.fade);
     if (actTime < timeOUT) {
-        uint8_t R = act.R;
-        uint8_t G = act.G;
-        uint8_t B = act.B;
-
-        if (act.fade > 0) {  // somente da fade se ouver
-            uint32_t actTimeFade = max((act.at + act.fade), actTime);
-            R = map(actTime, act.at, actTimeFade, status.R, act.R);
-            G = map(actTime, act.at, actTimeFade, status.G, act.G);
-            B = map(actTime, act.at, actTimeFade, status.B, act.B);
-        }
-        // Serial.println(actTimeFade);
+        uint32_t actTimeFade = max((act.at + act.fade), actTime);
+        uint8_t R = map(actTime, act.at, actTimeFade, status.R, act.R);
+        uint8_t G = map(actTime, act.at, actTimeFade, status.G, act.G);
+        uint8_t B = map(actTime, act.at, actTimeFade, status.B, act.B);
         if (hanldesLeds != NULL) {
             (*hanldesLeds)(R, G, B);
         }
     } else {  // proximo estagio da animacao
-        memcpy(
-            &status, &act,
-            sizeof(animation_t));  // copia o ultimo status para setar o proximo
+        memcpy(&status, &act, sizeof(animation_t)); // copia o ultimo status para setar o proximo
         actAnimation = actAnimation->next;
         if (actAnimation != NULL) {
             act = actAnimation->value;
@@ -277,46 +238,4 @@ void loopAnimation() {
     // actAnimation->value
 }
 
-/**
- * @brief Set the Blinker Color function
- * esta funcao acender uma cor por determido tempo em millis segundos e dps
- * volta para animacao. No momento dessa funcao o codigo fica travado pos a
- * mesma nao é asyncrona
- *
- * @param R 0 - 255
- * @param G 0 - 255
- * @param B 0 - 255
- * @param timer 0 - 65536 - tempo para essa cor fica acesa
- */
-void setBlinkerColor(uint8_t R, uint8_t G, uint8_t B, uint16_t timer) {
-    if (hanldesLeds == NULL) return;
-    hanldesLeds(R, G, B);
-    delay(timer);
-}
 
-/**
- * @brief Stop Animation
- *
- */
-void stopAnimation() { animationRun = STOP; }
-
-/**
- * @brief Start Animation
- *
- */
-void startAnimation() { animationRun = ANIMATION; }
-
-/**
- * @brief Set the Static Color Function
- * essa funcao coloca uma cor fixa no led e para a animacao
- *
- * @param R
- * @param G
- * @param B
- */
-void setStaticColor(uint8_t R, uint8_t G, uint8_t B) {
-    animationRun = STATIC;
-    staticR = R;
-    staticG = G;
-    staticB = B;
-}

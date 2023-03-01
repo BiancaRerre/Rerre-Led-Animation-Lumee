@@ -14,7 +14,6 @@ body {
 .titulo{
   font-size: 72px;
   color: #5d5d5d;
-  line-height: 20px;
   text-shadow: 2px 2px 5px #34343434;
 }
 .quadrado{
@@ -38,6 +37,11 @@ p{
 .colorPicker{
   display: block;
   width: 100%;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
 }
 
 )===";

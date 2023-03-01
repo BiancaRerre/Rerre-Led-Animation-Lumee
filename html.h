@@ -6,6 +6,8 @@ const char gerador[] PROGMEM = R"===(
   <head>
     <meta charset="utf-8">
     <title>Gerador de animação RGB</title>
+    
+    <meta name="viewport" content="initial-scale=0.81">
   </head>
   
   <style>
@@ -70,7 +72,8 @@ h1 {
 }
 
 input[type="range"] {
-  width: 300px;
+  width: 200px;
+  max-width: 85vw;
   height: 10px;
   border-radius: 0px;
   background-color: red;
@@ -104,13 +107,55 @@ input[type="range"] {
 
     <h2>Espera e transição</h2>
     <div class="sliders">
-    <label for="wait">Wait:</label>
-    <input type="number" id="wait" name="wait" min="0" max="5000" value="0">
-    <br>
+    <label for="wait">Fade:</label>
+    <input type="range" id="faderange" name="fade" min="0" max="100" step="0.01">
+<input type="number" id="fade" name="fade-value" value="1500">
+<br>
+<label for="wait">Wait:</label>
+<input type="range" id="waitrange" name="wait" min="0" max="100" step="0.01">
+<input type="number" id="wait" name="wait-value">
 
-    <label for="fade">Fade:</label>
-    <input type="number" id="fade" name="fade" min="0" max="5000" value="2000">
-    <br></div>
+<style>
+    input[type="range"] {
+        width: 200px;
+    }
+
+    input[type="number"] {
+        width: 60px;
+    }
+</style>
+
+<script>
+    const fadeSlider = document.getElementById("faderange");
+    const fadeOutput = document.getElementById("fade");
+
+    const waitSlider = document.getElementById("waitrange");
+    const waitOutput = document.getElementById("wait");
+
+    // Define a função que converte o valor do slider em um valor exponencial limitado a 60000
+    function exponentialValue(x) {
+        const maxValue = 60000;
+        const value = Math.exp(x * Math.log(1 + maxValue)) - 1;
+        return value;
+    }
+
+    // Atualiza o valor da caixa de texto com o valor exponencial do slider
+    fadeSlider.oninput = function() {
+        const value = exponentialValue(this.value / 100);
+        fadeOutput.value = value.toFixed(0);
+    };
+
+    // Atualiza o valor da caixa de texto com o valor exponencial do slider
+    waitSlider.oninput = function() {
+        const value = exponentialValue(this.value / 100);
+        waitOutput.value = value.toFixed(0);
+    };
+</script>
+
+    <br>
+    
+    
+    </div>
 
     <h2>Código de animação RGB</h2>
     <div class="sliders">
@@ -212,6 +257,7 @@ blue.addEventListener('input', changeColor)
 changeColor();
 
       </script>
+      <a href="/"><p class="frase">Go to lumee</p></a>
   </body>
 </html>
 
@@ -223,7 +269,7 @@ const char postForms[] PROGMEM = R"===(
   <head>
     <script src="https://cdn.jsdelivr.net/npm/@jaames/iro@5"></script>
     <link rel="stylesheet" href="style.css"> 
-    <meta name="viewport" content="initial-scale=1">
+    <meta name="viewport" content="initial-scale=0.9">
     <title>LUMEE</title>
   </head>
   <body>
@@ -231,10 +277,12 @@ const char postForms[] PROGMEM = R"===(
     <div id="hexInput"></div>
     <div class="quadrado"> 
       <h1 class="titulo">Lumee</h1>
+      <aaa class="frase"> tech is beauty</aaa>
       <div class="wrap">
         <div class="colorPicker"></div>
       </div>
-      <P class="frase"> tech is beauty</P>
+      <a href="/gerador"><P class="frase"> Go to animations ></P></a>
+      
     </div>
     <script type="text/javascript" src="/js"></script>
   </body>

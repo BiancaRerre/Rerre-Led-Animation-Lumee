@@ -1,24 +1,19 @@
 #include <Adafruit_NeoPixel.h>
 #include <Arduino.h>
-
-#ifdef ESP32
-   //libs esp32 here
-#endif
-
 #ifdef ESP8266
 #include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
-#endif
-
 #include <WiFiManager.h>
+#include <ESP8266WebServer.h>
+ESP8266WebServer server(80); // cria uma instância do servidor web
+#endif
 #include "animatiocnDecoder.hpp" // arquivo com a função setAnimation()
 #include"./html.h"
 //#include "./infrastructure.h"
 #include"./js.h"
 #include"./style.h"
 
-ESP8266WebServer server(80); // cria uma instância do servidor web
 
+bool anistatus = 1;
 
 #ifdef ESP32
     #define PIN 48
@@ -59,10 +54,14 @@ const char* animationweb = "";
 
 
 void handleAnimation() {
-  animationweb = server.arg("animation").c_str();
+  
+  animation = server.arg("animation").c_str();
   Serial.println("Animação recebida:");
-  Serial.println(animationweb);
-  setAnimation(animationweb, strlen(animationweb));
+  Serial.println(animation);
+  
+  anistatus = 1;
+  setAnimation(animation, strlen(animation));
+  
   server.send(200, "text/html", "");
 }
 
@@ -89,8 +88,11 @@ void handleStop() {                           // send HTML to the page
 void handlePlay() {                           // send HTML to the page
     Serial.println("GET /play");
     if(strlen(animationweb) > 2){
+    stopAnimation();
     setAnimation(animationweb, strlen(animationweb));
     }else{
+     stopAnimation();
+     anistatus = 1;
       setAnimation(animation, strlen(animation));
     }
     
@@ -98,9 +100,11 @@ void handlePlay() {                           // send HTML to the page
 }
 
 void handleRestart() {                           // send HTML to the page
-    ESP.restart();
+    
     Serial.println("GET /restart");
-    server.send(200, "text/html", "");  // check HTML.h file
+    server.send(200, "text/html", "Reiniciando esp");  // check HTML.h file
+    delay(100);
+    ESP.restart();
 }
 
 void handleStyle() {                           // send HTML to the page
@@ -114,7 +118,7 @@ void handlejs() {                           // send HTML to the page
 
 void handleGetParam() {
  if (server.hasArg("cor")) {
-   stopAnimation();
+  // stopAnimation();
     String corRGB = server.arg("cor");
     String r = corRGB.substring(4,corRGB.indexOf(','));
     corRGB = corRGB.substring(corRGB.indexOf(',')+1);
@@ -182,18 +186,20 @@ void setup() {
 
     // while (!Serial) {
     // }
-    delay(1000);
+    //delay(1000);
     Serial.println("Start");
     strip.begin();
-    delay(50);
+   // delay(50);
    
-    setHandleLed([](uint8_t R, uint8_t G, uint8_t B) {
+    setHanldesLeds([](uint8_t R, uint8_t G, uint8_t B) {
         analogWrite(PINLEDR,R);
         analogWrite(PINLEDG,G);
         analogWrite(PINLEDB,B);
         strip.setPixelColor(0, strip.Color(R, G, B, 100));
         strip.show();
     });
+
+    anistatus = 1;
     setAnimation(animation, strlen(animation));
 
 
@@ -204,13 +210,19 @@ void setup() {
 uint32_t lastTime = millis();
 
 void loop() { 
+
+if(anistatus){
   loopAnimation();
-   if (lastTime != 0 && (millis() - lastTime) > 10000) {
-        lastTime = 0;
-        setStaticColor(255, 0, 255);
-    }
+ }
+
+ 
+ //  if (lastTime != 0 && (millis() - lastTime) > 10000) {
+ //       lastTime = 0;
+ //       setStaticColor(255, 0, 255);
+ //   }
   server.handleClient(); // lida com solicitações de clientes
     }
 
-
-
+void stopAnimation(){
+  anistatus = 0;
+}
