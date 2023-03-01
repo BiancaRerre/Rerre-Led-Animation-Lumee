@@ -1,241 +1,228 @@
+#include <Adafruit_NeoPixel.h>
 #include <Arduino.h>
+#ifdef ESP8266
+#include <ESP8266WiFi.h>
+#include <WiFiManager.h>
+#include <ESP8266WebServer.h>
+ESP8266WebServer server(80); // cria uma instância do servidor web
+#endif
+#include "animatiocnDecoder.hpp" // arquivo com a função setAnimation()
+#include"./html.h"
+//#include "./infrastructure.h"
+#include"./js.h"
+#include"./style.h"
 
-typedef struct animation {
-    uint8_t R;      // cor Vermelhar
-    uint8_t G;      // cor Verde
-    uint8_t B;      // cor Azul
-    uint16_t fade;  // tempo do fade
-    uint16_t time;
-    uint32_t at;
-} animation_t;
 
-typedef struct list {
-    animation_t value;
-    list* next;
-} listAnimation_t;
+bool anistatus = 1;
 
-listAnimation_t* startAnimation = NULL;
-listAnimation_t* actAnimation = NULL;
-animation_t status;
-animation_t act;
+#ifdef ESP32
+    #define PIN 48
+#endif
 
-listAnimation_t* getLastAniation(bool penult) {
-    listAnimation_t* aux = startAnimation;
-    if (aux == NULL) return NULL;
-    while (aux->next != NULL) {
-        aux = aux->next;
-    }
-    return aux;
-}
+#ifdef ESP8266
+    #define PIN 4
+#endif
 
-void addAniation(animation_t index) {
-    listAnimation_t* newAnimation = new listAnimation_t();
-    memcpy(&newAnimation->value, &index, sizeof(animation_t));
-    if (startAnimation == NULL) {
-        startAnimation = newAnimation;
-        return;
-    }
-    listAnimation_t* aux = startAnimation;
-    while (aux->next != NULL) {
-        aux = aux->next;
-    }
-    aux->next = newAnimation;
-}
+#define LED_COUNT 1
+Adafruit_NeoPixel strip =
+    Adafruit_NeoPixel(LED_COUNT, PIN, NEO_GRBW + NEO_KHZ800);
 
-void clearAniation() {
-    listAnimation_t* aux = startAnimation;
-    if (aux == NULL) return;
-    while (startAnimation != NULL) {
-        aux = startAnimation;
-        startAnimation = startAnimation->next;
-        delete aux;
-    }
-}
+#define PINLEDR 12
+#define PINLEDG 13
+#define PINLEDB 14
 
-//**************************************************
-//                 Log Animation
-//**************************************************
+int pinR = 12;
+int pinG = 13;
+int pinB = 14;
 
-void printSetValue(const char* who, uint16_t value) {
-    Serial.print("Value set to ");
-    Serial.print(who);
-    Serial.print(" -> ");
-    Serial.println(value);
-}
+int R[] = {255, 0, 0, 23, 56, 217}; // reD
+int G[] = {255, 0, 255, 123, 156, 187}; // 
+int B[] = {25, 158, 100, 0, 156, 87}; // 
 
-//**************************************************
-//                 Set Animation
-//**************************************************
 
-uint8_t state;
+#define NUMPIXELS 4
+Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
-enum states {
-    INITIAL = 0,
-    GETWHOVALUE,
-    GETVALUE,
-    SETRED,
-    SETBLUE,
-    SETGREEN,
-    SETTIMEFADE,
-    SETDELAY,
-};
+//ESP8266WebServer server(80);
+String corRGB ="";
 
-#define MAXAUXBUFFERLEN 10
-uint8_t countAuxBuffer = 0;
-char auxBuffer[MAXAUXBUFFERLEN];
 
-enum statusProcessing { NORMAL, NEXTANIMATION, ERRROR };
+const char* animation =
+"R20B0G0F100,R0B0G20F100,R0B20G0F100";
 
-uint16_t getValueOfAuxBuffer() {
-    uint16_t aux = 0;
-    aux = atol(auxBuffer);
-    return aux;
-}
+const char* animationweb = "";
 
-bool isNumber(char index) { return isDigit(index); }
-/**
- * @brief funcao interna para processadomento de uma animacao
- *
- * @param index caracter a ser processado
- * @param ani a animacao atual para cerregar os parametros
- * @return uint8_t
- */
-uint8_t processingChar(char index, animation_t* ani) {
-    // Serial.println(index);
-    if (isNumber(index)) {
-        // adiciona todos os numeros em um buffer auxiliar para ser processado
-        // mais para frente
-        auxBuffer[countAuxBuffer++] = index;
-    } else {
-        // coleta os valores numeros do auxilia buffer
-        if (state > GETVALUE) {
-            if (state == SETRED) {
-                ani->R = getValueOfAuxBuffer();
-                printSetValue("R", ani->R);
-            } else if (state == SETBLUE) {
-                ani->B = getValueOfAuxBuffer();
-                printSetValue("B", ani->B);
-            } else if (state == SETGREEN) {
-                ani->G = getValueOfAuxBuffer();
-                printSetValue("G", ani->G);
-            } else if (state == SETTIMEFADE) {
-                ani->fade = getValueOfAuxBuffer();
-                printSetValue("Fade", ani->fade);
-            } else if (state == SETDELAY) {
-                ani->time = getValueOfAuxBuffer();
-                printSetValue("Delay", ani->time);
-            }
-            state = GETWHOVALUE;  // reseta o state pois o proximo char nao é
-                                  // numerico
-        }
-        countAuxBuffer = 0;
-        memset(auxBuffer, 0, MAXAUXBUFFERLEN);
-        // processamento dos caracteres
-        if (index == ',') {
-            return NEXTANIMATION;
-        } else if (index == 'R') {
-            state = SETRED;
-        } else if (index == 'G') {
-            state = SETGREEN;
-        } else if (index == 'B') {
-            state = SETBLUE;
-        } else if (index == 'F') {
-            state = SETTIMEFADE;
-        } else if (index == 'W') {
-            state = SETDELAY;
-        } else if (index == 'S') {
-        } else if (index == 'L') {
-        } else {
-            return ERRROR;
-        }
-    }
-    return NORMAL;
-}
 
-/**
- * @brief Set the Animation object
- *
- * @param animation texto de animacao
- * @param len tamanho em caracteres da animcacao
- */
-void setAnimation(const char* animation, uint16_t len) {
-    clearAniation();
-    uint16_t i = 0;
-    animation_t ani;
-    memset(&ani, 0, sizeof(animation_t));
-    ani.R = ani.G = ani.B = 0xff;
-
-    if (*(animation + len) != ',') {
-        memset(const_cast<char*>(animation + len), ',', 1);
-    }
-    state = GETWHOVALUE;
-    while (i <= len) {
-        uint8_t status = processingChar(*(animation + i), &ani);
-        if (status == NORMAL) {
-            // esse status indica que a operacao ainda esta acontecendo
-        } else if (status == NEXTANIMATION) {
-            addAniation(ani);
-            memset(&ani, 0, sizeof(animation_t));
-            ani.R = ani.G = ani.B = 0xff;
-            Serial.println("NEXTANIMATION");
-            // esse satatus indica que o evevnto de animacao esta completo
-        } else {
-            // idicador de erro no texto
-            // return false;
-        }
-        i++;
-    }
-}
-
-//*********************************
-//        LOOP ANIMATION
-//*********************************
-
-typedef void handleLeds_t(uint8_t, uint8_t, uint8_t);
-
-handleLeds_t* hanldesLeds = NULL;
-
-void setHanldesLeds(handleLeds_t* index) { hanldesLeds = index; }
-
-void loopAnimation() {
-    if (hanldesLeds == NULL) return;
-    if (startAnimation == NULL) return;
-    if (actAnimation == NULL) {
-        actAnimation = startAnimation;
-        act = actAnimation->value;
-    }
-    // seta RGB caso nao setado
-    if (act.R == 0xff) act.R = status.R;
-    if (act.G == 0xff) act.G = status.G;
-    if (act.B == 0xff) act.B = status.B;
-
-    // coleta os tempos
-    if ((act.fade > 0 || act.time > 0) && act.at == 0) {
-        act.at = millis();  // seta o tempo de inicio da fade somende se ouver
-                            // um fade ou um temer
-    }
-    uint32_t timeOUT = act.at + act.fade + act.time;
-
-    // processamento em tempo real
-    uint32_t actTime = millis();
-    // Serial.println(act.fade);
-    if (actTime < timeOUT) {
-        uint32_t actTimeFade = max((act.at + act.fade), actTime);
-        uint8_t R = map(actTime, act.at, actTimeFade, status.R, act.R);
-        uint8_t G = map(actTime, act.at, actTimeFade, status.G, act.G);
-        uint8_t B = map(actTime, act.at, actTimeFade, status.B, act.B);
-        if (hanldesLeds != NULL) {
-            (*hanldesLeds)(R, G, B);
-        }
-    } else {  // proximo estagio da animacao
-        memcpy(&status, &act, sizeof(animation_t)); // copia o ultimo status para setar o proximo
-        actAnimation = actAnimation->next;
-        if (actAnimation != NULL) {
-            act = actAnimation->value;
-        }
-    }
-
-    // actAnimation->value
+void handleAnimation() {
+  
+  animation = server.arg("animation").c_str();
+  Serial.println("Animação recebida:");
+  Serial.println(animation);
+  
+  anistatus = 1;
+  setAnimation(animation, strlen(animation));
+  
+  server.send(200, "text/html", "");
 }
 
 
+
+void handleGerador() {
+    const char* animationweb = server.arg("animation").c_str();
+  Serial.println(animationweb);
+  setAnimation(animationweb, strlen(animationweb));
+  server.send(200, "text/html", gerador);
+}
+
+void handleIndex() {                           // send HTML to the page
+    Serial.println("GET /");
+    server.send(200, "text/html", postForms);  // check HTML.h file
+}
+
+void handleStop() {                           // send HTML to the page
+    stopAnimation();
+    Serial.println("GET /stop");
+    server.send(200, "text/html", "");  // check HTML.h file
+}
+
+void handlePlay() {                           // send HTML to the page
+    Serial.println("GET /play");
+    if(strlen(animationweb) > 2){
+    stopAnimation();
+    setAnimation(animationweb, strlen(animationweb));
+    }else{
+     stopAnimation();
+     anistatus = 1;
+      setAnimation(animation, strlen(animation));
+    }
+    
+    server.send(200, "text/html", "");  // check HTML.h file
+}
+
+void handleRestart() {                           // send HTML to the page
+    
+    Serial.println("GET /restart");
+    server.send(200, "text/html", "Reiniciando esp");  // check HTML.h file
+    delay(100);
+    ESP.restart();
+}
+
+void handleStyle() {                           // send HTML to the page
+    Serial.println("GET /style.css");
+    server.send(200, "text/css", style);  // check HTML.h file
+}
+void handlejs() {                           // send HTML to the page
+    Serial.println("GET /js");
+    server.send(200, "application/javascript", js);  // check HTML.h file
+}
+
+void handleGetParam() {
+ if (server.hasArg("cor")) {
+    stopAnimation();
+    String corRGB = server.arg("cor");
+    String r = corRGB.substring(4,corRGB.indexOf(','));
+    corRGB = corRGB.substring(corRGB.indexOf(',')+1);
+    String g = corRGB.substring(0,corRGB.indexOf(','));
+    corRGB = corRGB.substring(corRGB.indexOf(',')+1);
+    String b = corRGB.substring(0,corRGB.length()-1);
+    pixels.setPixelColor(0,pixels.Color(r.toInt(),g.toInt(),b.toInt()));
+    pixels.show();
+
+    analogWrite(pinR, r.toInt());
+    analogWrite(pinG, g.toInt());
+    analogWrite(pinB, b.toInt());
+
+    Serial.print("r: ");
+    Serial.println(r.toInt());
+    Serial.print("g: ");
+    Serial.println(g.toInt());    
+    Serial.print("b: ");
+    Serial.println(b.toInt());
+ }
+
+}   
+
+void handleconfig() { 
+ if (server.hasArg("set")) {
+   //Definir qual Gpio é cada cor
+    pinR = server.arg("pinR").toInt();
+    pinG = server.arg("pinG").toInt();
+    pinB = server.arg("pinB").toInt();
+
+    pinMode(pinR, OUTPUT);
+    pinMode(pinG, OUTPUT);
+    pinMode(pinB, OUTPUT);  
+    
+ }
+    server.send(200, "text/html", configLumee);
+    Serial.println("GET /config");
+}   
+
+
+void setup() {
+  Serial.begin(115200);
+    WiFiManager wifiManager;
+  wifiManager.autoConnect("AP-NAME", "AP-PASSWORD"); // conecta ao WiFi
+
+  server.on("/animation", handleAnimation); // cria um endpoint para receber animações
+  server.on("/gerador", handleGerador); // cria um endpoint para receber animações
+  server.on("/", handleIndex);
+  server.on("/style.css", handleStyle);
+  server.on("/js", handlejs);
+  server.on("/config", handleconfig);
+  server.on("/cor", handleGetParam);
+  server.on("/stop", handleStop);
+  server.on("/play", handlePlay);
+  server.on("/restart", handleRestart);
+  server.begin(); // inicia o servidor web
+
+    #ifdef ESP8266
+    analogWriteFreq(8000);
+    #endif
+    pinMode(PINLEDR, OUTPUT);
+    pinMode(PINLEDG, OUTPUT);
+    pinMode(PINLEDB, OUTPUT);
+    
+
+    // while (!Serial) {
+    // }
+    //delay(1000);
+    Serial.println("Start");
+    strip.begin();
+   // delay(50);
+   
+    setHanldesLeds([](uint8_t R, uint8_t G, uint8_t B) {
+        analogWrite(PINLEDR,R);
+        analogWrite(PINLEDG,G);
+        analogWrite(PINLEDB,B);
+        strip.setPixelColor(0, strip.Color(R, G, B, 100));
+        strip.show();
+    });
+
+    anistatus = 1;
+    setAnimation(animation, strlen(animation));
+
+
+}
+
+
+
+uint32_t lastTime = millis();
+
+void loop() { 
+
+if(anistatus){
+  loopAnimation();
+ }
+
+ 
+ //  if (lastTime != 0 && (millis() - lastTime) > 10000) {
+ //       lastTime = 0;
+ //       setStaticColor(255, 0, 255);
+ //   }
+  server.handleClient(); // lida com solicitações de clientes
+    }
+
+void stopAnimation(){
+  anistatus = 0;
+}
